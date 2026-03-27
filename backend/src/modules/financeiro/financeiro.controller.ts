@@ -169,7 +169,7 @@ export class FinanceiroController {
   @Get('resumo')
   async calcularResumo(
     @CurrentTenant() tenantId: string,
-  ): Promise<ResumoFinanceiroDto> {
+  ): Promise<any> {
     return this.financeiroService.calcularResumo(tenantId);
   }
 }

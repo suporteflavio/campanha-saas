@@ -25,12 +25,11 @@ export class CompetitorsService {
     const where: any = { tenantId };
 
     if (filters?.partido) {
-      where.partido = { contains: filters.partido, mode: 'insensitive' };
+      where.partido = { contains: filters.partido };
     }
     if (filters?.cargoPretendido) {
       where.cargoPretendido = {
         contains: filters.cargoPretendido,
-        mode: 'insensitive',
       };
     }
 

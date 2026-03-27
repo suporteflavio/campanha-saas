@@ -2,12 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface CreateEleitorDto {
-  nome: string;
-  cpf: string;
+  nome?: string;
+  cpf?: string;
   email?: string;
   whatsapp?: string;
   consentimento?: boolean;
-  segmento?: 'engajados' | 'indecisos' | 'contrários';
+  segmento?: string;
+  telefone?: string;
+  endereco?: string;
+  municipio?: string;
+  zona?: string;
+  secao?: string;
+  observacoes?: string;
+  consentimentoWhatsapp?: boolean;
 }
 
 interface UpdateEleitorDto {
@@ -15,11 +22,18 @@ interface UpdateEleitorDto {
   email?: string;
   whatsapp?: string;
   consentimento?: boolean;
-  segmento?: 'engajados' | 'indecisos' | 'contrários';
+  segmento?: string;
+  telefone?: string;
+  endereco?: string;
+  municipio?: string;
+  zona?: string;
+  secao?: string;
+  observacoes?: string;
+  consentimentoWhatsapp?: boolean;
 }
 
 interface FiltrosEleitores {
-  segmento?: 'engajados' | 'indecisos' | 'contrários';
+  segmento?: string;
   busca?: string;
   consentimento?: boolean;
   skip?: number;
@@ -36,7 +50,12 @@ export class EleitoresService {
   async create(tenantId: string, data: CreateEleitorDto) {
     return await this.prisma.eleitor.create({
       data: {
-        ...data,
+        nome: data.nome || '',
+        cpf: data.cpf || '',
+        email: data.email,
+        whatsapp: data.whatsapp,
+        consentimento: data.consentimento ?? false,
+        segmento: data.segmento,
         tenantId,
       },
     });
@@ -57,9 +76,9 @@ export class EleitoresService {
     if (consentimento !== undefined) where.consentimento = consentimento;
     if (busca) {
       where.OR = [
-        { nome: { contains: busca, mode: 'insensitive' } },
-        { cpf: { contains: busca, mode: 'insensitive' } },
-        { whatsapp: { contains: busca, mode: 'insensitive' } },
+        { nome: { contains: busca } },
+        { cpf: { contains: busca } },
+        { whatsapp: { contains: busca } },
       ];
     }
 
@@ -111,9 +130,16 @@ export class EleitoresService {
   ) {
     await this.findOne(tenantId, id);
 
+    const updateData: any = {};
+    if (data.nome !== undefined) updateData.nome = data.nome;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp;
+    if (data.consentimento !== undefined) updateData.consentimento = data.consentimento;
+    if (data.segmento !== undefined) updateData.segmento = data.segmento;
+
     return await this.prisma.eleitor.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 
@@ -132,9 +158,9 @@ export class EleitoresService {
   async buscarPorSegmento(
     tenantId: string,
     segmento: 'engajados' | 'indecisos' | 'contrários',
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const [data, total] = await Promise.all([
       this.prisma.eleitor.findMany({
         where: { tenantId, segmento },

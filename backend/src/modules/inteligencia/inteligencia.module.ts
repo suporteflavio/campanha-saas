@@ -1,1 +1,12 @@
-import { Module } from '@nestjs/common';\nimport { InteligenciaService } from './inteligencia.service';\nimport { InteligenciaController } from './inteligencia.controller';\nimport { PrismaModule } from '@/common/prisma/prisma.module';\n\n@Module({\n  imports: [PrismaModule],\n  controllers: [InteligenciaController],\n  providers: [InteligenciaService],\n  exports: [InteligenciaService],\n})\nexport class InteligenciaModule {}\n
+import { Module } from '@nestjs/common';
+import { InteligenciaService } from './inteligencia.service';
+import { InteligenciaController } from './inteligencia.controller';
+import { PrismaModule } from '@/common/prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [InteligenciaController],
+  providers: [InteligenciaService],
+  exports: [InteligenciaService],
+})
+export class InteligenciaModule {}

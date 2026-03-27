@@ -54,12 +54,13 @@ export class AttendanceService {
 
     const reuniao = await this.getReuniaoLocation(reuniaoId);
 
+    const orConditions: any[] = [];
+    if (dto.whatsappVotante) orConditions.push({ whatsappVotante: dto.whatsappVotante });
+    if (dto.cpfVotante) orConditions.push({ cpfVotante: dto.cpfVotante });
+
     const duplicate = await this.prisma.meetingAttendance.findFirst({
       where: {
-        OR: [
-          dto.whatsappVotante ? { whatsappVotante: dto.whatsappVotante } : undefined,
-          dto.cpfVotante ? { cpfVotante: dto.cpfVotante } : undefined,
-        ].filter(Boolean),
+        OR: orConditions,
       },
       include: {
         reuniao: true,
@@ -90,7 +91,7 @@ export class AttendanceService {
         telefoneVotante: dto.telefoneVotante,
         whatsappVotante: dto.whatsappVotante,
         cpfVotante: dto.cpfVotante,
-        interesses: dto.interesses || [],
+        interesses: JSON.stringify(dto.interesses || []),
         latitude: dto.latitude,
         longitude: dto.longitude,
         distanciaMetros: Math.round(distanciaMetros),
@@ -119,13 +120,20 @@ export class AttendanceService {
     }
 
     if (filtros?.nomeVotante) {
-      where.nomeVotante = { contains: filtros.nomeVotante, mode: 'insensitive' };
+      where.nomeVotante = { contains: filtros.nomeVotante };
     }
 
     const presentes = await this.prisma.meetingAttendance.findMany({ where });
 
     if (filtros?.interesse) {
-      return presentes.filter((p) => p.interesses?.includes(filtros.interesse));
+      return presentes.filter((p) => {
+        try {
+          const arr: string[] = p.interesses ? JSON.parse(p.interesses) : [];
+          return arr.includes(filtros.interesse as string);
+        } catch {
+          return false;
+        }
+      });
     }
 
     return presentes;

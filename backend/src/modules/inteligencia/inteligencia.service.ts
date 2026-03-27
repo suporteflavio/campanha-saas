@@ -290,7 +290,7 @@ export class InteligenciaService {
       this.analisarSegmentacao(tenantId),
     ]);
 
-    const recomendacoes = [];
+    const recomendacoes: Array<{ titulo: string; descricao: string; acao: string }> = [];
 
     // Recomendacao 1: Focar em municipios com melhor desempenho
     const metasOtimas = metas.filter(

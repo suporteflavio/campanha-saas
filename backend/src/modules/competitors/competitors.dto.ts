@@ -1,17 +1,17 @@
-import { IsString, IsOptional, IsNumber, Min, IsEnum, IsDecimal } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
 
 export class CreateCompetitorDto {
   @IsString()
-  nome: string;
+  nome!: string;
 
   @IsString()
-  partido: string;
+  partido!: string;
 
   @IsString()
-  cargoPretendido: string;
+  cargoPretendido!: string;
 
   @IsString()
-  estado: string;
+  estado!: string;
 
   @IsOptional()
   @IsNumber()
@@ -57,15 +57,15 @@ export class UpdateCompetitorDto {
 }
 
 export class CompetitorResponseDto {
-  id: string;
-  tenantId: string;
-  nome: string;
-  partido: string;
-  cargoPretendido: string;
-  estado: string;
+  id!: string;
+  tenantId!: string;
+  nome!: string;
+  partido!: string;
+  cargoPretendido!: string;
+  estado!: string;
   votosAnteriores?: number;
   despesaDeclarada?: number;
   notas?: string;
-  criadoEm: Date;
-  atualizadoEm: Date;
+  criadoEm!: Date;
+  atualizadoEm!: Date;
 }

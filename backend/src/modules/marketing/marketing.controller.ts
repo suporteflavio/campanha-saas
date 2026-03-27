@@ -118,7 +118,7 @@ export class MarketingController {
   @Get('performance/por-plataforma')
   async obterPerformancePorPlataforma(
     @CurrentTenant() tenantId: string,
-  ): Promise<PerformanceMarketingDto[]> {
+  ): Promise<any[]> {
     return this.marketingService.obterPerformancePorPlataforma(tenantId);
   }
 }

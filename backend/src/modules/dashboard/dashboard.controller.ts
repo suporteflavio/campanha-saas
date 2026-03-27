@@ -4,12 +4,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
-import {
-  DashboardResumoDto,
-  DashboardMetricasDto,
-  DashboardTimelineDto,
-  DashboardAlertasDto,
-} from './dashboard.dto';
+
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentTenant } from '@/common/decorators';
 
@@ -26,7 +21,7 @@ export class DashboardController {
   @Get('resumo')
   async getResumo(
     @CurrentTenant() tenantId: string,
-  ): Promise<DashboardResumoDto> {
+  ): Promise<any> {
     return this.dashboardService.getResumo(tenantId);
   }
 
@@ -38,7 +33,7 @@ export class DashboardController {
   @Get('metricas')
   async getMetricas(
     @CurrentTenant() tenantId: string,
-  ): Promise<DashboardMetricasDto> {
+  ): Promise<any> {
     return this.dashboardService.getMetricas(tenantId);
   }
 
@@ -50,7 +45,7 @@ export class DashboardController {
   @Get('timeline')
   async getTimeline(
     @CurrentTenant() tenantId: string,
-  ): Promise<DashboardTimelineDto> {
+  ): Promise<any> {
     return this.dashboardService.getTimeline(tenantId);
   }
 
@@ -62,7 +57,7 @@ export class DashboardController {
   @Get('alertas')
   async getAlertas(
     @CurrentTenant() tenantId: string,
-  ): Promise<DashboardAlertasDto> {
+  ): Promise<any> {
     return this.dashboardService.getAlertas(tenantId);
   }
 }

@@ -25,7 +25,7 @@ export class CreateContaDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   saldoInicial!: number;
 }
 
@@ -44,7 +44,7 @@ export class UpdateContaDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   @IsOptional()
   saldoInicial?: number;
 }
@@ -55,7 +55,7 @@ export class CreateNotaFiscalDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   valor!: number;
 
   @IsEnum(TipoNota)
@@ -81,7 +81,7 @@ export class UpdateNotaFiscalDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   @IsOptional()
   valor?: number;
 

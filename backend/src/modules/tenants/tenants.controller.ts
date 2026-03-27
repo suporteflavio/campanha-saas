@@ -32,7 +32,7 @@ export class TenantsController {
   async getTenant(
     @CurrentTenant() tenantId: string,
     @Param('id') id: string,
-  ): Promise<TenantInfoDto> {
+  ): Promise<any> {
     // Validar que o ID do param é o mesmo do token
     if (id !== tenantId) {
       throw new Error('Unauthorized');
@@ -49,7 +49,7 @@ export class TenantsController {
     @CurrentTenant() tenantId: string,
     @Param('id') id: string,
     @Body() updateTenantDto: UpdateTenantDto,
-  ): Promise<TenantInfoDto> {
+  ): Promise<any> {
     // Validar que o ID do param é o mesmo do token
     if (id !== tenantId) {
       throw new Error('Unauthorized');

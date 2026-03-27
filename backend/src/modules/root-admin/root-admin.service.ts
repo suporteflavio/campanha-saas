@@ -114,7 +114,7 @@ export class RootAdminService {
       .map((t) => ({
         tenantId: t.id,
         nome: t.name,
-        daysLate: Math.floor((Date.now() - t.subscriptionDueDate.getTime()) / (1000 * 60 * 60 * 24)),
+        daysLate: Math.floor((Date.now() - t.subscriptionDueDate!.getTime()) / (1000 * 60 * 60 * 24)),
       }));
 
     const alertas = [];

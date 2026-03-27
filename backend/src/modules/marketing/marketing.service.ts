@@ -2,23 +2,33 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface CreateCampanhaMarketingDto {
-  nome: string;
-  plataforma: 'instagram' | 'whatsapp' | 'email' | 'sms' | 'pixel';
+  nome?: string;
+  titulo?: string;
+  plataforma?: string;
   conteudo?: string;
-  dataInicio: Date;
+  descricao?: string;
+  dataInicio?: Date;
   dataFim?: Date;
-  status?: 'planejada' | 'ativa' | 'pausada' | 'encerrada';
+  status?: string;
   alcance?: number;
   engajamento?: number;
+  linkCampanha?: string;
+  observacoes?: string;
 }
 
 interface UpdateCampanhaMarketingDto {
   nome?: string;
-  plataforma?: 'instagram' | 'whatsapp' | 'email' | 'sms' | 'pixel';
+  titulo?: string;
+  plataforma?: string;
   conteudo?: string;
+  descricao?: string;
   dataInicio?: Date;
   dataFim?: Date;
-  status?: 'planejada' | 'ativa' | 'pausada' | 'encerrada';
+  status?: string;
+  alcance?: number;
+  engajamento?: number;
+  linkCampanha?: string;
+  observacoes?: string;
 }
 
 interface MetricasCampanha {
@@ -39,7 +49,14 @@ export class MarketingService {
   ) {
     return await this.prisma.campanhaMarketing.create({
       data: {
-        ...data,
+        nome: data.nome || data.titulo || '',
+        plataforma: data.plataforma || 'instagram',
+        conteudo: data.conteudo || data.descricao,
+        dataInicio: data.dataInicio || new Date(),
+        dataFim: data.dataFim,
+        status: data.status || 'planejada',
+        alcance: data.alcance || 0,
+        engajamento: data.engajamento || 0,
         tenantId,
       },
     });
@@ -50,10 +67,10 @@ export class MarketingService {
    */
   async findAll(
     tenantId: string,
+    pagination: { skip?: number; take?: number } = {},
     plataforma?: string,
-    skip: number = 0,
-    take: number = 10,
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const where: any = { tenantId };
     if (plataforma) where.plataforma = plataforma;
 
@@ -105,9 +122,21 @@ export class MarketingService {
   ) {
     await this.findOne(tenantId, id);
 
+    const updateData: any = {};
+    if (data.nome !== undefined) updateData.nome = data.nome;
+    if (data.titulo !== undefined) updateData.nome = data.titulo;
+    if (data.plataforma !== undefined) updateData.plataforma = data.plataforma;
+    if (data.conteudo !== undefined) updateData.conteudo = data.conteudo;
+    if (data.descricao !== undefined) updateData.conteudo = data.descricao;
+    if (data.dataInicio !== undefined) updateData.dataInicio = data.dataInicio;
+    if (data.dataFim !== undefined) updateData.dataFim = data.dataFim;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.alcance !== undefined) updateData.alcance = data.alcance;
+    if (data.engajamento !== undefined) updateData.engajamento = data.engajamento;
+
     return await this.prisma.campanhaMarketing.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 

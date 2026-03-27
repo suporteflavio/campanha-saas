@@ -18,6 +18,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { CompetitorsModule } from './modules/competitors/competitors.module';
 import { RootAdminModule } from './modules/root-admin/root-admin.module';
+import { InteligenciaModule } from './modules/inteligencia/inteligencia.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { RootAdminModule } from './modules/root-admin/root-admin.module';
     AttendanceModule,
     CompetitorsModule,
     RootAdminModule,
+    InteligenciaModule,
   ],
   controllers: [],
   providers: [],

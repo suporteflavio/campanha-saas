@@ -17,7 +17,7 @@ export enum PrioridadeDemanda {
 
 export class CreateDemandasDto {
   @IsString()
-  titulo: string;
+  titulo!: string;
 
   @IsString()
   @IsOptional()
@@ -28,7 +28,7 @@ export class CreateDemandasDto {
   status?: StatusDemanda;
 
   @IsEnum(PrioridadeDemanda)
-  prioridade: PrioridadeDemanda;
+  prioridade!: PrioridadeDemanda;
 
   @IsString()
   @IsOptional()
@@ -69,29 +69,29 @@ export class UpdateDemandasDto {
 
 export class AtualizarStatusDemandasDto {
   @IsEnum(StatusDemanda)
-  status: StatusDemanda;
+  status!: StatusDemanda;
 }
 
 export class DemandasResponseDto {
-  id: string;
-  tenantId: string;
-  titulo: string;
+  id!: string;
+  tenantId!: string;
+  titulo!: string;
   descricao?: string;
-  status: StatusDemanda;
-  prioridade: PrioridadeDemanda;
+  status!: StatusDemanda;
+  prioridade!: PrioridadeDemanda;
   responsavel?: string;
   dataVencimento?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export class EstatisticasDemandasDto {
-  total: number;
-  aberta: number;
-  em_progresso: number;
-  concluida: number;
-  cancelada: number;
-  porPrioridade: {
+  total!: number;
+  aberta!: number;
+  em_progresso!: number;
+  concluida!: number;
+  cancelada!: number;
+  porPrioridade!: {
     baixa: number;
     media: number;
     alta: number;

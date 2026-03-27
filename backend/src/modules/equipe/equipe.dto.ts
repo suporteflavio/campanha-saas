@@ -17,10 +17,10 @@ export enum CargoEquipe {
 
 export class CreateEquipeDto {
   @IsString()
-  nome: string;
+  nome!: string;
 
   @IsString()
-  cpf: string;
+  cpf!: string;
 
   @IsString()
   @IsOptional()
@@ -31,7 +31,7 @@ export class CreateEquipeDto {
   telefone?: string;
 
   @IsEnum(CargoEquipe)
-  cargo: CargoEquipe;
+  cargo!: CargoEquipe;
 
   @IsString()
   @IsOptional()
@@ -39,7 +39,7 @@ export class CreateEquipeDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   @IsOptional()
   salario?: number;
 
@@ -72,7 +72,7 @@ export class UpdateEquipeDto {
 
   @IsNumber()
   @Type(() => Number)
-  @Min('0')
+  @Min(0)
   @IsOptional()
   salario?: number;
 
@@ -84,7 +84,7 @@ export class UpdateEquipeDto {
 export class GerarEscalaDto {
   @IsDate()
   @Type(() => Date)
-  semanaInicio: Date;
+  semanaInicio!: Date;
 
   @IsString()
   @IsOptional()
@@ -92,26 +92,26 @@ export class GerarEscalaDto {
 }
 
 export class EquipeResponseDto {
-  id: string;
-  tenantId: string;
-  nome: string;
-  cpf: string;
+  id!: string;
+  tenantId!: string;
+  nome!: string;
+  cpf!: string;
   email?: string;
   telefone?: string;
-  cargo: CargoEquipe;
+  cargo!: CargoEquipe;
   regiao?: string;
   salario?: number;
-  status: StatusEquipe;
-  dataAdmissao: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  status!: StatusEquipe;
+  dataAdmissao!: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export class FolhaPagamentoResponseDto {
-  totalMembros: number;
-  totalSalarios: number;
-  mediaSalarial: number;
-  membros: Array<{
+  totalMembros!: number;
+  totalSalarios!: number;
+  mediaSalarial!: number;
+  membros!: Array<{
     id: string;
     nome: string;
     cargo: CargoEquipe;

@@ -58,9 +58,9 @@ export class LiderancasService {
    */
   async findAll(
     tenantId: string,
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const [data, total] = await Promise.all([
       this.prisma.lideranca.findMany({
         where: { tenantId },

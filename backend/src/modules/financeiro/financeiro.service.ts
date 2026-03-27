@@ -3,24 +3,35 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface CreateContaDto {
-  descricao: string;
+  numeroConta?: string;
+  banco?: string;
+  agencia?: string;
+  saldoInicial?: number;
+  descricao?: string;
   saldo?: number | string;
-  tipo?: 'corrente' | 'aplicacao';
+  tipo?: string;
 }
 
 interface UpdateContaDto {
+  numeroConta?: string;
+  banco?: string;
+  agencia?: string;
+  saldoInicial?: number;
   descricao?: string;
   saldo?: number | string;
-  tipo?: 'corrente' | 'aplicacao';
+  tipo?: string;
 }
 
 interface CreateNotaFiscalDto {
-  numero: string;
-  descricao: string;
-  valor: number | string;
-  data: Date;
-  tipo?: 'receita' | 'despesa';
-  status?: 'pendente' | 'aprovada' | 'rejeitada';
+  numero?: string;
+  descricao?: string;
+  valor?: number | string;
+  data?: Date;
+  tipo?: string;
+  status?: string;
+  fornecedor?: string;
+  nomeArquivo?: string;
+  categoriaOrc?: string;
 }
 
 interface UpdateNotaFiscalDto {
@@ -28,15 +39,11 @@ interface UpdateNotaFiscalDto {
   descricao?: string;
   valor?: number | string;
   data?: Date;
-  tipo?: 'receita' | 'despesa';
-  status?: 'pendente' | 'aprovada' | 'rejeitada';
-}
-
-interface FiltrosNotas {
-  tipo?: 'receita' | 'despesa';
-  status?: 'pendente' | 'aprovada' | 'rejeitada';
-  skip?: number;
-  take?: number;
+  tipo?: string;
+  status?: string;
+  fornecedor?: string;
+  nomeArquivo?: string;
+  categoriaOrc?: string;
 }
 
 @Injectable()
@@ -49,11 +56,13 @@ export class FinanceiroService {
    * Criar conta bancária
    */
   async createConta(tenantId: string, data: CreateContaDto) {
+    const saldoValue = data.saldo ?? data.saldoInicial ?? 0;
     return await this.prisma.conta.create({
       data: {
-        ...data,
+        descricao: data.descricao || data.banco || data.numeroConta || 'Conta',
         tenantId,
-        saldo: new Decimal(data.saldo || 0),
+        saldo: new Decimal(saldoValue),
+        tipo: data.tipo || 'corrente',
       },
     });
   }
@@ -63,9 +72,9 @@ export class FinanceiroService {
    */
   async findAllContas(
     tenantId: string,
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const [data, total] = await Promise.all([
       this.prisma.conta.findMany({
         where: { tenantId },
@@ -114,9 +123,12 @@ export class FinanceiroService {
   ) {
     await this.findOneConta(tenantId, id);
 
-    const updateData: any = { ...data };
-    if (data.saldo !== undefined) {
-      updateData.saldo = new Decimal(data.saldo);
+    const updateData: any = {};
+    if (data.descricao !== undefined) updateData.descricao = data.descricao;
+    if (data.tipo !== undefined) updateData.tipo = data.tipo;
+    const saldoValue = data.saldo ?? data.saldoInicial;
+    if (saldoValue !== undefined) {
+      updateData.saldo = new Decimal(saldoValue);
     }
 
     return await this.prisma.conta.update({
@@ -142,9 +154,13 @@ export class FinanceiroService {
   async createNotaFiscal(tenantId: string, data: CreateNotaFiscalDto) {
     return await this.prisma.notaFiscal.create({
       data: {
-        ...data,
+        numero: data.numero || `NF-${Date.now()}`,
+        descricao: data.descricao || '',
         tenantId,
-        valor: new Decimal(data.valor),
+        valor: new Decimal(data.valor || 0),
+        data: data.data || new Date(),
+        tipo: data.tipo || 'despesa',
+        status: data.status || 'pendente',
       },
     });
   }
@@ -154,9 +170,11 @@ export class FinanceiroService {
    */
   async findAllNotas(
     tenantId: string,
-    filtros: FiltrosNotas = {},
+    pagination: { skip?: number; take?: number } = {},
+    tipo?: string,
+    status?: string,
   ) {
-    const { tipo, status, skip = 0, take = 10 } = filtros;
+    const { skip = 0, take = 10 } = pagination;
 
     const where: any = { tenantId };
     if (tipo) where.tipo = tipo;
@@ -210,7 +228,12 @@ export class FinanceiroService {
   ) {
     await this.findOneNota(tenantId, id);
 
-    const updateData: any = { ...data };
+    const updateData: any = {};
+    if (data.numero !== undefined) updateData.numero = data.numero;
+    if (data.descricao !== undefined) updateData.descricao = data.descricao;
+    if (data.data !== undefined) updateData.data = data.data;
+    if (data.tipo !== undefined) updateData.tipo = data.tipo;
+    if (data.status !== undefined) updateData.status = data.status;
     if (data.valor !== undefined) {
       updateData.valor = new Decimal(data.valor);
     }
