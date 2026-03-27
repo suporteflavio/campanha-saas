@@ -1,0 +1,11 @@
+[build]
+builder = "dockerfile"
+context = "."
+
+[deploy]
+startCommand = "node backend/dist/main.js"
+port = 3000
+
+[env]
+NODE_ENV = "production"
+PORT = "3000"

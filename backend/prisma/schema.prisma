@@ -1,0 +1,466 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// MULTI-TENANCY CORE
+// ============================================================
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  cnpj      String   @unique
+  slug      String   @unique
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              TenantUser[]
+  liderancas         Lideranca[]
+  eleitores          Eleitor[]
+  reunioes           Reuniao[]
+  metas              Meta[]
+  contas             Conta[]
+  notas              NotaFiscal[]
+  vouchers           ValeVoucher[]
+  equipe             EquipeMembro[]
+  demandas           Demanda[]
+  campanhas          CampanhaMarketing[]
+  permissoes         Permission[]
+  categorias         FinancialCategory[]
+  competitors        Competitor[]
+
+  subscriptionStatus String   @default("active")
+  subscriptionDueDate DateTime?
+  gracePeriodDays    Int      @default(5)
+  mrr                Decimal? @default(0)
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  cpf       String   @unique
+  name      String
+  email     String?  @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantUsers TenantUser[]
+
+  @@map("users")
+}
+
+model TenantUser {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      String   @default("user") // admin, manager, user, finance
+  status    String   @default("active") // active, inactive, suspended
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissoes  Permission[]
+
+  @@unique([tenantId, userId])
+  @@map("tenant_users")
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+model Dashboard {
+  id           String   @id @default(cuid())
+  tenantId     String
+  contadorVotos Int     @default(0)
+  metaVotos    Int      @default(1000)
+  alertas      String
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("dashboards")
+}
+
+// ============================================================
+// LIDERANÇAS (CRM POLÍTICO)
+// ============================================================
+
+model Lideranca {
+  id           String   @id @default(cuid())
+  tenantId     String
+  nome         String
+  cpf          String
+  email        String?
+  telefone     String?
+  nivel        Int      @default(1) // 1=vereador, 2=prefeito, 3=estadual
+  regiao       String?
+  mapa         String?
+  score       Int      @default(0)
+  pai_id       String?  // hierarquia
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pai      Lideranca? @relation("Hierarquia", fields: [pai_id], references: [id])
+  filhos   Lideranca[] @relation("Hierarquia")
+
+  @@map("liderancas")
+}
+
+// ============================================================
+// ELEITORES
+// ============================================================
+
+model Eleitor {
+  id           String   @id @default(cuid())
+  tenantId     String
+  nome         String
+  cpf          String
+  email        String?
+  whatsapp     String?
+  consentimento Boolean @default(false)
+  segmento     String?  // "engajados", "indecisos", "contrários"
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("eleitores")
+}
+
+// ============================================================
+// REUNIÕES / EVENTOS
+// ============================================================
+
+model Reuniao {
+  id           String   @id @default(cuid())
+  tenantId     String
+  titulo       String
+  descricao    String?
+  data         DateTime
+  local        String?
+  latitude     Float?
+  longitude    Float?
+  presentes    Int      @default(0)
+  tipo         String   @default("reuniao") // reuniao, evento, carreata
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  presencas     MeetingAttendance[]
+
+  @@map("reunioes")
+}
+
+// ============================================================
+// METAS DE VOTOS
+// ============================================================
+
+model Meta {
+  id            String   @id @default(cuid())
+  tenantId      String
+  municipio     String
+  votosNecessarios Int
+  votosAtual    Int      @default(0)
+  historico     String? // JSON com históricos eleitorais
+  simulacao     String? // JSON com simulações
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("metas")
+}
+
+// ============================================================
+// FINANCEIRO
+// ============================================================
+
+model Conta {
+  id           String   @id @default(cuid())
+  tenantId     String
+  descricao    String
+  saldo        Decimal  @default(0)
+  tipo         String   @default("corrente") // corrente, aplicacao
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("contas")
+}
+
+model NotaFiscal {
+  id           String   @id @default(cuid())
+  tenantId     String
+  numero       String   @unique
+  descricao    String
+  valor        Decimal
+  data         DateTime
+  tipo         String   @default("despesa") // receita, despesa
+  status       String   @default("pendente") // pendente, aprovada, rejeitada
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("notas_fiscais")
+}
+
+// ============================================================
+// VALE-COMBUSTÍVEL
+// ============================================================
+
+model PostoConveniado {
+  id           String   @id @default(cuid())
+  nome         String
+  cnpj         String   @unique
+  endereco     String
+  telefone     String
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("postos_conveniados")
+}
+
+model ValeVoucher {
+  id           String   @id @default(cuid())
+  tenantId     String
+  codigo       String   @unique
+  valor        Decimal
+  membro_id    String?
+  postaId      String?
+  status       String   @default("ativo") // ativo, usado, expirado
+  dataUso      DateTime?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("vale_vouchers")
+}
+
+// ============================================================
+// EQUIPE / PAGAMENTOS
+// ============================================================
+
+model EquipeMembro {
+  id           String   @id @default(cuid())
+  tenantId     String
+  nome         String
+  cpf          String   @unique
+  cargo        String
+  salario      Decimal
+  dataAdmissao DateTime
+  status       String   @default("ativo") // ativo, inativo, demitido
+  escala       String? // JSON com escala de trabalho
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("equipe_membros")
+}
+
+// ============================================================
+// DEMANDAS (CONTROLE DE PEDIDOS)
+// ============================================================
+
+model Demanda {
+  id           String   @id @default(cuid())
+  tenantId     String
+  eleitorId    String?
+  titulo       String
+  descricao    String?
+  prioridade   String   @default("media") // baixa, media, alta
+  status       String   @default("aberta") // aberta, em_andamento, resolvida
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("demandas")
+}
+
+// ============================================================
+// MARKETING DIGITAL
+// ============================================================
+
+model CampanhaMarketing {
+  id           String   @id @default(cuid())
+  tenantId     String
+  nome         String
+  plataforma   String   // instagram, whatsapp, email, sms, pixel
+  conteudo     String?
+  dataInicio   DateTime
+  dataFim      DateTime?
+  status       String   @default("planejada") // planejada, ativa, pausada, encerrada
+  alcance      Int      @default(0)
+  engajamento  Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("campanhas_marketing")
+}
+
+// ============================================================
+// INTELIGÊNCIA ARTIFICIAL
+// ============================================================
+
+model PrediacaoIA {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tipo          String   // previsao_votos, alerta_seguranca, sugestao
+  dados         String? // JSON
+  previsao      String? // JSON com resultado
+  confianca     Decimal  @default(0) // 0-100
+  processadaEm  DateTime @default(now())
+
+  @@map("predicoes_ia")
+}
+
+// ============================================================
+// SEGURANÇA E COMPLIANCE (LGPD)
+// ============================================================
+
+model ConsentimentoLGPD {
+  id       String   @id @default(cuid())
+  usuarioId String
+  tipo     String   // whatsapp, email, dados_pessoais
+  aceito   Boolean
+  dataAceite DateTime @default(now())
+
+  @@map("consentimentos_lgpd")
+}
+
+model LogAuditoria {
+  id       String   @id @default(cuid())
+  usuarioId String?
+  acao     String
+  tabela   String
+  dados    String?
+  ip       String?
+  dataAcao DateTime @default(now())
+
+  @@map("logs_auditoria")
+}
+
+// ============================================================
+// PERMISSÕES GRANULARES
+// ============================================================
+
+model Permission {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenantUserId String
+  modulo       String   // leaders, voters, meetings, finance, fuel, etc
+  canRead      Boolean  @default(false)
+  canCreate    Boolean  @default(false)
+  canUpdate    Boolean  @default(false)
+  canDelete    Boolean  @default(false)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantUser TenantUser @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tenantUserId, modulo])
+  @@map("permissions")
+}
+
+// ============================================================
+// CATEGORIAS FINANCEIRAS
+// ============================================================
+
+model FinancialCategory {
+  id           String   @id @default(cuid())
+  tenantId     String
+  nome         String
+  tipo         String   // payable, receivable
+  descricao    String?
+  ativa        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("financial_categories")
+}
+
+// ============================================================
+// PRESENÇA EM REUNIÕES (COM GPS)
+// ============================================================
+
+model MeetingAttendance {
+  id               String   @id @default(cuid())
+  reuniaoId        String
+  nomeVotante      String
+  cpfVotante       String?   @unique
+  telefoneVotante  String?
+  whatsappVotante  String?   @unique
+  interesses       String? // JSON array de interesses (saude, agro, etc)
+  latitude         Float?
+  longitude        Float?
+  distanciaMetros  Int?         // distância do local oficial da reunião
+  valida           Boolean  @default(false) // validou GPS?
+  consentimentoLGPD Boolean @default(false)
+  registradaEm     DateTime @default(now())
+
+  reuniao Reuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_attendances")
+}
+
+// ============================================================
+// ANÁLISE DE CONCORRÊNCIA
+// ============================================================
+
+model Competitor {
+  id               String   @id @default(cuid())
+  tenantId         String
+  nome             String
+  partido          String
+  cargoPretendido  String   // deputado_estadual, federal, senador, governador
+  estado           String
+  votosAnteriores  Int?
+  despesaDeclarada Decimal?
+  notas            String?
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("competitors")
+}
+
+// ============================================================
+// CONFIGURAÇÕES DO SISTEMA
+// ============================================================
+
+model ConfiguracaoTenant {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  chaveInstagram      String?
+  chaveWhatsapp       String?
+  pixelMeta           String?
+  emailConfigurado    Boolean  @default(false)
+  smsConfigurado      Boolean  @default(false)
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
+
+  @@map("configuracoes_tenant")
+}
