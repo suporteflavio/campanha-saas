@@ -2,19 +2,25 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface CreateReuniaoDto {
-  titulo: string;
+  titulo?: string;
   descricao?: string;
-  data: Date;
+  data?: Date;
+  datahora?: Date;
   local?: string;
-  tipo?: 'reuniao' | 'evento' | 'carreata';
+  municipio?: string;
+  tipo?: string;
+  presentes?: number;
 }
 
 interface UpdateReuniaoDto {
   titulo?: string;
   descricao?: string;
   data?: Date;
+  datahora?: Date;
   local?: string;
-  tipo?: 'reuniao' | 'evento' | 'carreata';
+  municipio?: string;
+  tipo?: string;
+  presentes?: number;
 }
 
 @Injectable()
@@ -27,7 +33,12 @@ export class ReunioesService {
   async create(tenantId: string, data: CreateReuniaoDto) {
     return await this.prisma.reuniao.create({
       data: {
-        ...data,
+        titulo: data.titulo || '',
+        descricao: data.descricao,
+        data: data.data || data.datahora || new Date(),
+        local: data.local,
+        tipo: data.tipo || 'reuniao',
+        presentes: data.presentes || 0,
         tenantId,
       },
     });
@@ -38,17 +49,18 @@ export class ReunioesService {
    */
   async findAll(
     tenantId: string,
-    mes?: number,
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
+    mes?: string,
   ) {
+    const { skip = 0, take = 10 } = pagination;
+    const mesNum = mes ? parseInt(mes, 10) : undefined;
     const where: any = { tenantId };
 
     // Filtrar por mês se fornecido (1-12)
-    if (mes && mes >= 1 && mes <= 12) {
+    if (mesNum && mesNum >= 1 && mesNum <= 12) {
       const currentYear = new Date().getFullYear();
-      const startDate = new Date(currentYear, mes - 1, 1);
-      const endDate = new Date(currentYear, mes, 0);
+      const startDate = new Date(currentYear, mesNum - 1, 1);
+      const endDate = new Date(currentYear, mesNum, 0);
 
       where.data = {
         gte: startDate,
@@ -104,9 +116,18 @@ export class ReunioesService {
   ) {
     await this.findOne(tenantId, id);
 
+    const updateData: any = {};
+    if (data.titulo !== undefined) updateData.titulo = data.titulo;
+    if (data.descricao !== undefined) updateData.descricao = data.descricao;
+    if (data.data !== undefined) updateData.data = data.data;
+    if (data.datahora !== undefined) updateData.data = data.datahora;
+    if (data.local !== undefined) updateData.local = data.local;
+    if (data.tipo !== undefined) updateData.tipo = data.tipo;
+    if (data.presentes !== undefined) updateData.presentes = data.presentes;
+
     return await this.prisma.reuniao.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 

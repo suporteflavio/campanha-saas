@@ -116,7 +116,7 @@ export class EquipeController {
   @Get('folha-pagamento')
   async calcularFolhaPagamento(
     @CurrentTenant() tenantId: string,
-  ): Promise<FolhaPagamentoResponseDto> {
+  ): Promise<any> {
     return this.equipeService.calcularFolhaPagamento(tenantId);
   }
 }

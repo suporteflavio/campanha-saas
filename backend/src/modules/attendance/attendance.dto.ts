@@ -9,10 +9,10 @@ import {
 
 export class CreateAttendanceDto {
   @IsString()
-  reuniaoId: string;
+  reuniaoId!: string;
 
   @IsString()
-  nomeVotante: string;
+  nomeVotante!: string;
 
   @IsString()
   @IsOptional()
@@ -27,13 +27,13 @@ export class CreateAttendanceDto {
   interesses?: string[];
 
   @IsNumber()
-  latitude: number;
+  latitude!: number;
 
   @IsNumber()
-  longitude: number;
+  longitude!: number;
 
   @IsBoolean()
-  consentimentoLGPD: boolean;
+  consentimentoLGPD!: boolean;
 
   @IsString()
   @IsOptional()
@@ -41,17 +41,17 @@ export class CreateAttendanceDto {
 }
 
 export class AttendanceResponseDto {
-  id: string;
-  reuniaoId: string;
-  nomeVotante: string;
+  id!: string;
+  reuniaoId!: string;
+  nomeVotante!: string;
   telefoneVotante?: string;
   whatsappVotante?: string;
-  interesses: string[];
+  interesses!: string[];
   latitude?: number;
   longitude?: number;
-  consentimentoLGPD: boolean;
+  consentimentoLGPD!: boolean;
   distanciaMetros?: number;
-  valida: boolean;
-  registradaEm: Date;
+  valida!: boolean;
+  registradaEm!: Date;
   cpfVotante?: string;
 }

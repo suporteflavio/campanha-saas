@@ -2,25 +2,22 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface CreateDemandaDto {
-  titulo: string;
+  titulo?: string;
   descricao?: string;
-  prioridade?: 'baixa' | 'media' | 'alta';
-  status?: 'aberta' | 'em_andamento' | 'resolvida';
+  prioridade?: string;
+  status?: string;
   eleitorId?: string;
+  responsavel?: string;
+  dataVencimento?: Date;
 }
 
 interface UpdateDemandaDto {
   titulo?: string;
   descricao?: string;
-  prioridade?: 'baixa' | 'media' | 'alta';
-  status?: 'aberta' | 'em_andamento' | 'resolvida';
-}
-
-interface FiltrosDemandas {
-  status?: 'aberta' | 'em_andamento' | 'resolvida';
-  prioridade?: 'baixa' | 'media' | 'alta';
-  skip?: number;
-  take?: number;
+  prioridade?: string;
+  status?: string;
+  responsavel?: string;
+  dataVencimento?: Date;
 }
 
 @Injectable()
@@ -33,7 +30,11 @@ export class DemandasService {
   async create(tenantId: string, data: CreateDemandaDto) {
     return await this.prisma.demanda.create({
       data: {
-        ...data,
+        titulo: data.titulo || '',
+        descricao: data.descricao,
+        prioridade: data.prioridade || 'media',
+        status: data.status || 'aberta',
+        eleitorId: data.eleitorId,
         tenantId,
       },
     });
@@ -44,9 +45,11 @@ export class DemandasService {
    */
   async findAll(
     tenantId: string,
-    filtros: FiltrosDemandas = {},
+    pagination: { skip?: number; take?: number } = {},
+    status?: 'aberta' | 'em_andamento' | 'resolvida',
+    prioridade?: 'baixa' | 'media' | 'alta',
   ) {
-    const { status, prioridade, skip = 0, take = 10 } = filtros;
+    const { skip = 0, take = 10 } = pagination;
 
     const where: any = { tenantId };
     if (status) where.status = status;
@@ -100,9 +103,15 @@ export class DemandasService {
   ) {
     await this.findOne(tenantId, id);
 
+    const updateData: any = {};
+    if (data.titulo !== undefined) updateData.titulo = data.titulo;
+    if (data.descricao !== undefined) updateData.descricao = data.descricao;
+    if (data.prioridade !== undefined) updateData.prioridade = data.prioridade;
+    if (data.status !== undefined) updateData.status = data.status;
+
     return await this.prisma.demanda.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 
@@ -121,24 +130,9 @@ export class DemandasService {
   async atualizarStatus(
     tenantId: string,
     id: string,
-    novoStatus: 'aberta' | 'em_andamento' | 'resolvida',
+    novoStatus: string,
   ) {
-    const demanda = await this.findOne(tenantId, id);
-
-    // Validar transição de status
-    const transicoes = {
-      aberta: ['em_andamento'],
-      em_andamento: ['aberta', 'resolvida'],
-      resolvida: ['aberta'],
-    };
-
-    const transicoesPermitidas = transicoes[demanda.status] || [];
-
-    if (!transicoesPermitidas.includes(novoStatus)) {
-      throw new Error(
-        `Transição inválida de ${demanda.status} para ${novoStatus}`,
-      );
-    }
+    await this.findOne(tenantId, id);
 
     return await this.prisma.demanda.update({
       where: { id },

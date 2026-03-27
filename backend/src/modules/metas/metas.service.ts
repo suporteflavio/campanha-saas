@@ -2,25 +2,25 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface CreateMetaDto {
-  municipio: string;
-  votosNecessarios: number;
+  municipio?: string;
+  votosNecessarios?: number;
+  metaVotos?: number;
   votosAtual?: number;
   historico?: string;
   simulacao?: string;
+  secao?: string;
+  observacoes?: string;
 }
 
 interface UpdateMetaDto {
   municipio?: string;
   votosNecessarios?: number;
+  metaVotos?: number;
   votosAtual?: number;
   historico?: string;
   simulacao?: string;
-}
-
-interface DadosSimulacao {
-  cenario: string;
-  votosProjetados: number;
-  percentualCrescimento: number;
+  secao?: string;
+  observacoes?: string;
 }
 
 @Injectable()
@@ -33,9 +33,12 @@ export class MetasService {
   async create(tenantId: string, data: CreateMetaDto) {
     return await this.prisma.meta.create({
       data: {
-        ...data,
-        tenantId,
+        municipio: data.municipio || '',
+        votosNecessarios: data.votosNecessarios ?? data.metaVotos ?? 0,
         votosAtual: data.votosAtual || 0,
+        historico: data.historico,
+        simulacao: data.simulacao,
+        tenantId,
       },
     });
   }
@@ -45,9 +48,9 @@ export class MetasService {
    */
   async findAll(
     tenantId: string,
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const [data, total] = await Promise.all([
       this.prisma.meta.findMany({
         where: { tenantId },
@@ -96,9 +99,17 @@ export class MetasService {
   ) {
     await this.findOne(tenantId, id);
 
+    const updateData: any = {};
+    if (data.municipio !== undefined) updateData.municipio = data.municipio;
+    if (data.votosNecessarios !== undefined) updateData.votosNecessarios = data.votosNecessarios;
+    if (data.metaVotos !== undefined) updateData.votosNecessarios = data.metaVotos;
+    if (data.votosAtual !== undefined) updateData.votosAtual = data.votosAtual;
+    if (data.historico !== undefined) updateData.historico = data.historico;
+    if (data.simulacao !== undefined) updateData.simulacao = data.simulacao;
+
     return await this.prisma.meta.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 
@@ -135,15 +146,13 @@ export class MetasService {
   async calcularSimulacao(
     tenantId: string,
     id: string,
-    dados: DadosSimulacao,
+    votosProjetados: number,
   ) {
     const meta = await this.findOne(tenantId, id);
 
     const simulacao = {
-      cenario: dados.cenario,
-      votosProjetados: dados.votosProjetados,
-      percentualCrescimento: dados.percentualCrescimento,
-      diferencaParaMeta: meta.votosNecessarios - dados.votosProjetados,
+      votosProjetados,
+      diferencaParaMeta: meta.votosNecessarios - votosProjetados,
       dataCalculo: new Date(),
     };
 

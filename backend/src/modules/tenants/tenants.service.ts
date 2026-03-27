@@ -3,6 +3,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 
 interface UpdateTenantDto {
   name?: string;
+  nome?: string;
   slug?: string;
   status?: string;
 }
@@ -23,7 +24,7 @@ export class TenantsService {
             user: true,
           },
         },
-        lideránças: true,
+        liderancas: true,
         eleitores: true,
         reunioes: true,
         metas: true,
@@ -49,9 +50,15 @@ export class TenantsService {
     // Verificar se tenant existe
     await this.findById(id);
 
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.nome !== undefined) updateData.name = data.nome;
+    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.status !== undefined) updateData.status = data.status;
+
     return await this.prisma.tenant.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         users: {
           include: {

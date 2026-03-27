@@ -3,13 +3,16 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface CreateEquipeMembroDto {
-  nome: string;
-  cpf: string;
-  cargo: string;
-  salario: number | string;
-  dataAdmissao: Date;
-  status?: 'ativo' | 'inativo' | 'demitido';
+  nome?: string;
+  cpf?: string;
+  cargo?: string;
+  salario?: number | string;
+  dataAdmissao?: Date;
+  status?: string;
   escala?: string;
+  email?: string;
+  telefone?: string;
+  regiao?: string;
 }
 
 interface UpdateEquipeMembroDto {
@@ -17,8 +20,11 @@ interface UpdateEquipeMembroDto {
   cargo?: string;
   salario?: number | string;
   dataAdmissao?: Date;
-  status?: 'ativo' | 'inativo' | 'demitido';
+  status?: string;
   escala?: string;
+  email?: string;
+  telefone?: string;
+  regiao?: string;
 }
 
 interface DadosEscala {
@@ -29,6 +35,8 @@ interface DadosEscala {
   sexta?: string;
   sabado?: string;
   domingo?: string;
+  semanaInicio?: Date;
+  descricao?: string;
 }
 
 @Injectable()
@@ -41,9 +49,14 @@ export class EquipeService {
   async create(tenantId: string, data: CreateEquipeMembroDto) {
     return await this.prisma.equipeMembro.create({
       data: {
-        ...data,
+        nome: data.nome || '',
+        cpf: data.cpf || '',
+        cargo: data.cargo || '',
         tenantId,
-        salario: new Decimal(data.salario),
+        salario: new Decimal(data.salario || 0),
+        dataAdmissao: data.dataAdmissao || new Date(),
+        status: data.status || 'ativo',
+        escala: data.escala,
       },
     });
   }
@@ -53,9 +66,9 @@ export class EquipeService {
    */
   async findAll(
     tenantId: string,
-    skip: number = 0,
-    take: number = 10,
+    pagination: { skip?: number; take?: number } = {},
   ) {
+    const { skip = 0, take = 10 } = pagination;
     const [data, total] = await Promise.all([
       this.prisma.equipeMembro.findMany({
         where: { tenantId },
@@ -104,7 +117,12 @@ export class EquipeService {
   ) {
     await this.findOne(tenantId, id);
 
-    const updateData: any = { ...data };
+    const updateData: any = {};
+    if (data.nome !== undefined) updateData.nome = data.nome;
+    if (data.cargo !== undefined) updateData.cargo = data.cargo;
+    if (data.dataAdmissao !== undefined) updateData.dataAdmissao = data.dataAdmissao;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.escala !== undefined) updateData.escala = data.escala;
     if (data.salario !== undefined) {
       updateData.salario = new Decimal(data.salario);
     }

@@ -125,7 +125,7 @@ export class DemandasController {
   @Get('estatisticas')
   async obterEstatisticas(
     @CurrentTenant() tenantId: string,
-  ): Promise<EstatisticasDemandasDto> {
+  ): Promise<any> {
     return this.demandasService.obterEstatisticas(tenantId);
   }
 }
