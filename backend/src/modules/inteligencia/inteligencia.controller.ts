@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { InteligenciaService } from './inteligencia.service';
+import { InteligenciaService, PrevisaoVotos, AnaliseSegmentacao, AlertaIA } from './inteligencia.service';
 
 @Controller('inteligencia')
 export class InteligenciaController {
@@ -18,7 +18,7 @@ export class InteligenciaController {
       votosM3: number;
       tendenciaPercentual: number;
     },
-  ) {
+  ): Promise<PrevisaoVotos[]> {
     return await this.inteligenciaService.gerarPrevisao(tenantId, dados);
   }
 
@@ -26,7 +26,7 @@ export class InteligenciaController {
    * Analisar segmentacao de eleitores
    */
   @Get(':tenantId/segmentacao')
-  async analisarSegmentacao(@Param('tenantId') tenantId: string) {
+  async analisarSegmentacao(@Param('tenantId') tenantId: string): Promise<AnaliseSegmentacao> {
     return await this.inteligenciaService.analisarSegmentacao(tenantId);
   }
 
@@ -34,7 +34,7 @@ export class InteligenciaController {
    * Gerar alertas automaticos
    */
   @Get(':tenantId/alertas')
-  async gerarAlertas(@Param('tenantId') tenantId: string) {
+  async gerarAlertas(@Param('tenantId') tenantId: string): Promise<AlertaIA[]> {
     return await this.inteligenciaService.gerarAlertas(tenantId);
   }
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
-interface PrevisaoVotos {
+export interface PrevisaoVotos {
   municipio: string;
   votosProjetados: number;
   intervaloConfianca: {
@@ -13,7 +13,7 @@ interface PrevisaoVotos {
   diasRestantes: number;
 }
 
-interface AnaliseSegmentacao {
+export interface AnaliseSegmentacao {
   total: number;
   engajados: {
     quantidade: number;
@@ -32,7 +32,7 @@ interface AnaliseSegmentacao {
   };
 }
 
-interface AlertaIA {
+export interface AlertaIA {
   tipo: 'oportunidade' | 'risco' | 'seguranca';
   titulo: string;
   descricao: string;

@@ -1,12 +1,5 @@
-import { IsString, IsOptional, IsDate, IsNumber, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsDate, IsNumber, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
-
-export enum TipoReuniao {
-  REUNIAO = 'reuniao',
-  EVENTO = 'evento',
-  CARREATA = 'carreata',
-  COMICIO = 'comicio',
-}
 
 export class CreateReuniaoDto {
   @IsString()
@@ -28,8 +21,8 @@ export class CreateReuniaoDto {
   @IsOptional()
   municipio?: string;
 
-  @IsEnum(TipoReuniao)
-  tipo!: TipoReuniao;
+  @IsIn(['reuniao', 'evento', 'carreata', 'comicio'])
+  tipo!: 'reuniao' | 'evento' | 'carreata' | 'comicio';
 
   @IsNumber()
   @IsOptional()
@@ -48,6 +41,24 @@ export class UpdateReuniaoDto {
   @IsDate()
   @Type(() => Date)
   @IsOptional()
+  datahora?: Date;
+
+  @IsString()
+  @IsOptional()
+  local?: string;
+
+  @IsString()
+  @IsOptional()
+  municipio?: string;
+
+  @IsIn(['reuniao', 'evento', 'carreata', 'comicio'])
+  @IsOptional()
+  tipo?: 'reuniao' | 'evento' | 'carreata' | 'comicio';
+
+  @IsNumber()
+  @IsOptional()
+  presentes?: number;
+}
   datahora?: Date;
 
   @IsString()
