@@ -49,4 +49,280 @@ interface PrevisaoHistorica {
 }
 
 @Injectable()
-export class InteligenciaService {\n  constructor(private prisma: PrismaService) {}\n\n  /**\n   * Gerar previsão de votos usando análise de dados históricos e metas\n   * Algoritmo: Regressão linear simples com intervalo de confiança\n   */\n  async gerarPrevisao(\n    tenantId: string,\n    dados: PrevisaoHistorica,\n  ): Promise<PrevisaoVotos[]> {\n    // Buscar todas as metas do tenant\n    const metas = await this.prisma.meta.findMany({\n      where: { tenantId },\n    });\n\n    const previsoesVotos = metas.map((meta) => {\n      // Calcular tendência a partir dos dados históricos\n      const votos = [dados.votosM1, dados.votosM2, dados.votosM3];\n      const mediaVotos = votos.reduce((a, b) => a + b) / votos.length;\n      const tendencia = dados.tendenciaPercentual;\n\n      // Estimar votos projetados (com tendência)\n      const votosProjetados = Math.round(\n        mediaVotos * (1 + tendencia / 100),\n      );\n\n      // Calcular intervalo de confiança (±20%)\n      const margem = votosProjetados * 0.2;\n\n      // Probabilidade de atingir meta (modelo simplificado)\n      const diferencaVotos = meta.votosNecessarios - votosProjetados;\n      const probabilidade =\n        diferencaVotos <= 0\n          ? 100\n          : Math.max(\n              0,\n              100 -\n                (diferencaVotos / meta.votosNecessarios) * 100,\n            );\n\n      // Determinar tendência\n      let tendenciaLabel: 'crescente' | 'decrescente' | 'estavel';\n      if (tendencia > 5) tendenciaLabel = 'crescente';\n      else if (tendencia < -5) tendenciaLabel = 'decrescente';\n      else tendenciaLabel = 'estavel';\n\n      return {\n        municipio: meta.municipio,\n        votosProjetados,\n        intervaloConfianca: {\n          minimo: Math.round(votosProjetados - margem),\n          maximo: Math.round(votosProjetados + margem),\n        },\n        probabilidadeAtingirMeta: Number(probabilidade.toFixed(2)),\n        tendencia: tendenciaLabel,\n        diasRestantes: 7, // Assumindo ciclo semanal\n      };\n    });\n\n    return previsoesVotos;\n  }\n\n  /**\n   * Analisar segmentação de eleitores e gerar estratégicas de abordagem\n   */\n  async analisarSegmentacao(\n    tenantId: string,\n  ): Promise<AnaliseSegmentacao> {\n    const [totalEleitores, engajados, indecisos, contrarios] =\n      await Promise.all([\n        this.prisma.eleitor.count({\n          where: { tenantId },\n        }),\n        this.prisma.eleitor.count({\n          where: { tenantId, segmento: 'engajados' },\n        }),\n        this.prisma.eleitor.count({\n          where: { tenantId, segmento: 'indecisos' },\n        }),\n        this.prisma.eleitor.count({\n          where: { tenantId, segmento: 'contrários' },\n        }),\n      ]);\n\n    const safeTotal = totalEleitores || 1; // Evitar divisão por zero\n\n    return {\n      total: totalEleitores,\n      engajados: {\n        quantidade: engajados,\n        percentual: Number(\n          ((engajados / safeTotal) * 100).toFixed(2),\n        ),\n        potencial:\n          'ALTO - Focar em manutenção e amplificação de mensagens',\n      },\n      indecisos: {\n        quantidade: indecisos,\n        percentual: Number(\n          ((indecisos / safeTotal) * 100).toFixed(2),\n        ),\n        estrategia:\n          'MÉDIA - Produzir conteúdo persuasivo e direto ao ponto',\n      },\n      contrarios: {\n        quantidade: contrarios,\n        percentual: Number(\n          ((contrarios / safeTotal) * 100).toFixed(2),\n        ),\n        recomendacao:\n          'BAIXA - Evitar confronto direto, focar em \"não-voto\"',\n      },\n    };\n  }\n\n  /**\n   * Gerar alertas automáticos baseados em IA\n   * Analisa padrões de segurança, oportunidade e risco\n   */\n  async gerarAlertas(tenantId: string): Promise<AlertaIA[]> {\n    const alertas: AlertaIA[] = [];\n\n    // Buscar dados necessários em paralelo\n    const [metas, demandas, eleitores, campanhas] = await Promise.all([\n      this.prisma.meta.findMany({ where: { tenantId } }),\n      this.prisma.demanda.findMany({ where: { tenantId } }),\n      this.prisma.eleitor.findMany({ where: { tenantId } }),\n      this.prisma.campanhaMarketing.findMany({ where: { tenantId } }),\n    ]);\n\n    // ========== ALERTAS DE RISCO ==========\n\n    // Risco: Meta com baixo progresso há mais de X metas\n    const metasComRisco = metas.filter(\n      (m) => (m.votosAtual / m.votosNecessarios) * 100 < 20,\n    );\n\n    if (metasComRisco.length > 0) {\n      alertas.push({\n        tipo: 'risco',\n        titulo: 'Risco Crítico de Meta',\n        descricao: `${metasComRisco.length} município(s) com progresso crítico (< 20% da meta)`,\n        prioridade: 'alta',\n        dataGeracao: new Date(),\n        acaoRecomendada:\n          'Aumentar esforços de campaña, realizar eventos nas regiões de baixo desempenho',\n      });\n    }\n\n    // Risco: Alta quantidade de demandas não resolvidas\n    const demandasNaoResolvidas = demandas.filter(\n      (d) => d.status !== 'resolvida',\n    );\n\n    if (demandasNaoResolvidas.length > 10) {\n      alertas.push({\n        tipo: 'risco',\n        titulo: 'Backlog de Demandas Elevado',\n        descricao: `Você tem ${demandasNaoResolvidas.length} demandas pendentes`,\n        prioridade: 'media',\n        dataGeracao: new Date(),\n        acaoRecomendada:\n          'Priorizar demandas de alta importância e delegar tarefas',\n      });\n    }\n\n    // ========== ALERTAS DE OPORTUNIDADE ==========\n\n    // Oportunidade: Alto engajamento em algum segmento\n    const eleitoresEngajados = eleitores.filter(\n      (e) => e.segmento === 'engajados',\n    );\n\n    if (\n      eleitoresEngajados.length > 0 &&\n      (eleitoresEngajados.length / eleitores.length) * 100 > 40\n    ) {\n      alertas.push({\n        tipo: 'oportunidade',\n        titulo: 'Base Engajada Forte',\n        descricao: `Você tem ${eleitoresEngajados.length} eleitores engajados`,\n        prioridade: 'media',\n        dataGeracao: new Date(),\n        acaoRecomendada:\n          'Amplificar mensagens através dos engajados (efeito multiplicador)',\n      });\n    }\n\n    // Oportunidade: Campanha com excelente taxa de engajamento\n    const campanhasOtimas = campanhas.filter(\n      (c) =>\n        c.alcance > 0 &&\n        (c.engajamento / c.alcance) * 100 > 10,\n    );\n\n    if (campanhasOtimas.length > 0) {\n      alertas.push({\n        tipo: 'oportunidade',\n        titulo: 'Campanha com Alto Engajamento',\n        descricao: `${campanhasOtimas.length} campanha(s) com taxa > 10%`,\n        prioridade: 'baixa',\n        dataGeracao: new Date(),\n        acaoRecomendada:\n          'Replicar estratégia dessas campanhas em outras plataformas',\n      });\n    }\n\n    // ========== ALERTAS DE SEGURANÇA ==========\n\n    // Segurança: Baixa taxa de consentimento LGPD\n    const comConsent = eleitores.filter((e) => e.consentimento).length;\n    const taxaConsent =\n      eleitores.length > 0\n        ? (comConsent / eleitores.length) * 100\n        : 0;\n\n    if (taxaConsent < 30 && eleitores.length > 0) {\n      alertas.push({\n        tipo: 'seguranca',\n        titulo: 'Conformidade LGPD Baixa',\n        descricao: `Apenas ${taxaConsent.toFixed(0)}% de eleitores com consentimento`,\n        prioridade: 'alta',\n        dataGeracao: new Date(),\n        acaoRecomendada:\n          'Implementar estratégia de consentimento em todos os contatos',\n      });\n    }\n\n    return alertas;\n  }\n\n  /**\n   * Obter recomendações de otimização baseadas em padrões\n   */\n  async obterRecomendacoes(tenantId: string) {\n    const [metas, segmentacao] = await Promise.all([\n      this.prisma.meta.findMany({ where: { tenantId } }),\n      this.analisarSegmentacao(tenantId),\n    ]);\n\n    const recomendacoes = [];\n\n    // Recomendação 1: Focar em municípios com melhor desempenho\n    const metasOtimas = metas.filter(\n      (m) => (m.votosAtual / m.votosNecessarios) * 100 > 70,\n    );\n\n    if (metasOtimas.length > 0) {\n      recomendacoes.push({\n        titulo: 'Replicar Sucesso',\n        descricao: `Municípios com > 70% de meta: ${metasOtimas.map((m) => m.municipio).join(', ')}`,\n        acao: 'Estudar estratégias bem-sucedidas e aplicar em outros municípios',\n      });\n    }\n\n    // Recomendação 2: Aumentar engajamento de indecisos\n    if (segmentacao.indecisos.percentual > 20) {\n      recomendacoes.push({\n        titulo: 'Convertimento de Indecisos',\n        descricao: `Você tem ${segmentacao.indecisos.quantidade} eleitores indecisos`,\n        acao: 'Criar conteúdo persuasivo focado em proposta de valor diferenciada',\n      });\n    }\n\n    // Recomendação 3: Reduzir contrários\n    if (segmentacao.contrarios.quantidade > 100) {\n      recomendacoes.push({\n        titulo: 'Estratégia com Contrários',\n        descricao: `${segmentacao.contrarios.quantidade} eleitores contrários identificados`,\n        acao: 'Focar em segmentos neutros, evitar confronto direto',\n      });\n    }\n\n    return recomendacoes;\n  }\n}\n
+export class InteligenciaService {
+  constructor(private prisma: PrismaService) {}
+
+  /**
+   * Gerar previsao de votos usando analise de dados historicos e metas
+   * Algoritmo: Regressao linear simples com intervalo de confianca
+   */
+  async gerarPrevisao(
+    tenantId: string,
+    dados: PrevisaoHistorica,
+  ): Promise<PrevisaoVotos[]> {
+    // Buscar todas as metas do tenant
+    const metas = await this.prisma.meta.findMany({
+      where: { tenantId },
+    });
+
+    const previsoesVotos = metas.map((meta) => {
+      // Calcular tendencia a partir dos dados historicos
+      const votos = [dados.votosM1, dados.votosM2, dados.votosM3];
+      const mediaVotos = votos.reduce((a, b) => a + b) / votos.length;
+      const tendencia = dados.tendenciaPercentual;
+
+      // Estimar votos projetados (com tendencia)
+      const votosProjetados = Math.round(
+        mediaVotos * (1 + tendencia / 100),
+      );
+
+      // Calcular intervalo de confianca (±20%)
+      const margem = votosProjetados * 0.2;
+
+      // Probabilidade de atingir meta (modelo simplificado)
+      const diferencaVotos = meta.votosNecessarios - votosProjetados;
+      const probabilidade =
+        diferencaVotos <= 0
+          ? 100
+          : Math.max(
+              0,
+              100 -
+                (diferencaVotos / meta.votosNecessarios) * 100,
+            );
+
+      // Determinar tendencia
+      let tendenciaLabel: 'crescente' | 'decrescente' | 'estavel';
+      if (tendencia > 5) tendenciaLabel = 'crescente';
+      else if (tendencia < -5) tendenciaLabel = 'decrescente';
+      else tendenciaLabel = 'estavel';
+
+      return {
+        municipio: meta.municipio,
+        votosProjetados,
+        intervaloConfianca: {
+          minimo: Math.round(votosProjetados - margem),
+          maximo: Math.round(votosProjetados + margem),
+        },
+        probabilidadeAtingirMeta: Number(probabilidade.toFixed(2)),
+        tendencia: tendenciaLabel,
+        diasRestantes: 7, // Assumindo ciclo semanal
+      };
+    });
+
+    return previsoesVotos;
+  }
+
+  /**
+   * Analisar segmentacao de eleitores e gerar estrategicas de abordagem
+   */
+  async analisarSegmentacao(
+    tenantId: string,
+  ): Promise<AnaliseSegmentacao> {
+    const [totalEleitores, engajados, indecisos, contrarios] =
+      await Promise.all([
+        this.prisma.eleitor.count({
+          where: { tenantId },
+        }),
+        this.prisma.eleitor.count({
+          where: { tenantId, segmento: 'engajados' },
+        }),
+        this.prisma.eleitor.count({
+          where: { tenantId, segmento: 'indecisos' },
+        }),
+        this.prisma.eleitor.count({
+          where: { tenantId, segmento: 'contrarios' },
+        }),
+      ]);
+
+    const safeTotal = totalEleitores || 1; // Evitar divisao por zero
+
+    return {
+      total: totalEleitores,
+      engajados: {
+        quantidade: engajados,
+        percentual: Number(
+          ((engajados / safeTotal) * 100).toFixed(2),
+        ),
+        potencial:
+          'ALTO - Focar em manutencao e amplificacao de mensagens',
+      },
+      indecisos: {
+        quantidade: indecisos,
+        percentual: Number(
+          ((indecisos / safeTotal) * 100).toFixed(2),
+        ),
+        estrategia:
+          'MEDIA - Produzir conteudo persuasivo e direto ao ponto',
+      },
+      contrarios: {
+        quantidade: contrarios,
+        percentual: Number(
+          ((contrarios / safeTotal) * 100).toFixed(2),
+        ),
+        recomendacao:
+          'BAIXA - Evitar confronto direto, focar em "nao-voto"',
+      },
+    };
+  }
+
+  /**
+   * Gerar alertas automaticos baseados em IA
+   * Analisa padroes de seguranca, oportunidade e risco
+   */
+  async gerarAlertas(tenantId: string): Promise<AlertaIA[]> {
+    const alertas: AlertaIA[] = [];
+
+    // Buscar dados necessarios em paralelo
+    const [metas, demandas, eleitores, campanhas] = await Promise.all([
+      this.prisma.meta.findMany({ where: { tenantId } }),
+      this.prisma.demanda.findMany({ where: { tenantId } }),
+      this.prisma.eleitor.findMany({ where: { tenantId } }),
+      this.prisma.campanhaMarketing.findMany({ where: { tenantId } }),
+    ]);
+
+    // ========== ALERTAS DE RISCO ==========
+
+    // Risco: Meta com baixo progresso ha mais de X metas
+    const metasComRisco = metas.filter(
+      (m) => (m.votosAtual / m.votosNecessarios) * 100 < 20,
+    );
+
+    if (metasComRisco.length > 0) {
+      alertas.push({
+        tipo: 'risco',
+        titulo: 'Risco Critico de Meta',
+        descricao: `${metasComRisco.length} municipio(s) com progresso critico (< 20% da meta)`,
+        prioridade: 'alta',
+        dataGeracao: new Date(),
+        acaoRecomendada:
+          'Aumentar esforcos de campanha, realizar eventos nas regioes de baixo desempenho',
+      });
+    }
+
+    // Risco: Alta quantidade de demandas nao resolvidas
+    const demandasNaoResolvidas = demandas.filter(
+      (d) => d.status !== 'resolvida',
+    );
+
+    if (demandasNaoResolvidas.length > 10) {
+      alertas.push({
+        tipo: 'risco',
+        titulo: 'Backlog de Demandas Elevado',
+        descricao: `Voce tem ${demandasNaoResolvidas.length} demandas pendentes`,
+        prioridade: 'media',
+        dataGeracao: new Date(),
+        acaoRecomendada:
+          'Priorizar demandas de alta importancia e delegar tarefas',
+      });
+    }
+
+    // ========== ALERTAS DE OPORTUNIDADE ==========
+
+    // Oportunidade: Alto engajamento em algum segmento
+    const eleitoresEngajados = eleitores.filter(
+      (e) => e.segmento === 'engajados',
+    );
+
+    if (
+      eleitoresEngajados.length > 0 &&
+      (eleitoresEngajados.length / eleitores.length) * 100 > 40
+    ) {
+      alertas.push({
+        tipo: 'oportunidade',
+        titulo: 'Base Engajada Forte',
+        descricao: `Voce tem ${eleitoresEngajados.length} eleitores engajados`,
+        prioridade: 'media',
+        dataGeracao: new Date(),
+        acaoRecomendada:
+          'Amplificar mensagens atraves dos engajados (efeito multiplicador)',
+      });
+    }
+
+    // Oportunidade: Campanha com excelente taxa de engajamento
+    const campanhasOtimas = campanhas.filter(
+      (c) =>
+        c.alcance > 0 &&
+        (c.engajamento / c.alcance) * 100 > 10,
+    );
+
+    if (campanhasOtimas.length > 0) {
+      alertas.push({
+        tipo: 'oportunidade',
+        titulo: 'Campanha com Alto Engajamento',
+        descricao: `${campanhasOtimas.length} campanha(s) com taxa > 10%`,
+        prioridade: 'baixa',
+        dataGeracao: new Date(),
+        acaoRecomendada:
+          'Replicar estrategia dessas campanhas em outras plataformas',
+      });
+    }
+
+    // ========== ALERTAS DE SEGURANCA ==========
+
+    // Seguranca: Baixa taxa de consentimento LGPD
+    const comConsent = eleitores.filter((e) => e.consentimento).length;
+    const taxaConsent =
+      eleitores.length > 0
+        ? (comConsent / eleitores.length) * 100
+        : 0;
+
+    if (taxaConsent < 30 && eleitores.length > 0) {
+      alertas.push({
+        tipo: 'seguranca',
+        titulo: 'Conformidade LGPD Baixa',
+        descricao: `Apenas ${taxaConsent.toFixed(0)}% de eleitores com consentimento`,
+        prioridade: 'alta',
+        dataGeracao: new Date(),
+        acaoRecomendada:
+          'Implementar estrategia de consentimento em todos os contatos',
+      });
+    }
+
+    return alertas;
+  }
+
+  /**
+   * Obter recomendacoes de otimizacao baseadas em padroes
+   */
+  async obterRecomendacoes(tenantId: string) {
+    const [metas, segmentacao] = await Promise.all([
+      this.prisma.meta.findMany({ where: { tenantId } }),
+      this.analisarSegmentacao(tenantId),
+    ]);
+
+    const recomendacoes = [];
+
+    // Recomendacao 1: Focar em municipios com melhor desempenho
+    const metasOtimas = metas.filter(
+      (m) => (m.votosAtual / m.votosNecessarios) * 100 > 70,
+    );
+
+    if (metasOtimas.length > 0) {
+      recomendacoes.push({
+        titulo: 'Replicar Sucesso',
+        descricao: `Municipios com > 70% de meta: ${metasOtimas.map((m) => m.municipio).join(', ')}`,
+        acao: 'Estudar estrategias bem-sucedidas e aplicar em outros municipios',
+      });
+    }
+
+    // Recomendacao 2: Aumentar engajamento de indecisos
+    if (segmentacao.indecisos.percentual > 20) {
+      recomendacoes.push({
+        titulo: 'Convertimento de Indecisos',
+        descricao: `Voce tem ${segmentacao.indecisos.quantidade} eleitores indecisos`,
+        acao: 'Criar conteudo persuasivo focado em proposta de valor diferenciada',
+      });
+    }
+
+    // Recomendacao 3: Reduzir contrarios
+    if (segmentacao.contrarios.quantidade > 100) {
+      recomendacoes.push({
+        titulo: 'Estrategia com Contrarios',
+        descricao: `${segmentacao.contrarios.quantidade} eleitores contrarios identificados`,
+        acao: 'Focar em segmentos neutros, evitar confronto direto',
+      });
+    }
+
+    return recomendacoes;
+  }
+}
